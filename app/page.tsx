@@ -1,65 +1,147 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react'
+
+type Task = {
+  id: string
+  text: string
+  completed: boolean
+  categoryId: string
+  assignee: 'me' | 'partner' | 'both'
+}
+
+type Category = {
+  id: string
+  name: string
+}
+
+const initialCategories: Category[] = [
+  { id: 'shopping', name: '買い物' },
+  { id: 'payment', name: '支払い' },
+]
 
 export default function Home() {
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: crypto.randomUUID(),
+      text: '牛乳',
+      completed: false,
+      categoryId: 'shopping',
+      assignee: 'both',
+    },
+    {
+      id: crypto.randomUUID(),
+      text: '卵',
+      completed: false,
+      categoryId: 'shopping',
+      assignee: 'me',
+    },
+    {
+      id: crypto.randomUUID(),
+      text: '家賃',
+      completed: false,
+      categoryId: 'payment',
+      assignee: 'partner',
+    },
+  ])
+
+  const [input, setInput] = useState('')
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [assignee, setAssignee] = useState<'me' | 'partner' | 'both'>('both')
+
+  const addTask = () => {
+    if (!input || !activeCategory) return
+
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      text: input,
+      completed: false,
+      categoryId: activeCategory,
+      assignee,
+    }
+
+    setTasks([...tasks, newTask])
+    setInput('')
+    setActiveCategory(null)
+  }
+
+  const toggleTask = (id: string) => {
+    setTasks(tasks.map(t =>
+      t.id === id ? { ...t, completed: !t.completed } : t
+    ))
+  }
+
+  const getAssigneeLabel = (a: Task['assignee']) => {
+    if (a === 'me') return '🟢 自分'
+    if (a === 'partner') return '🔵 相手'
+    return '⚪️ どっちでも'
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="p-6 max-w-xl mx-auto space-y-8">
+      {initialCategories.map(category => {
+        const categoryTasks = tasks.filter(t => t.categoryId === category.id)
+
+        return (
+          <div key={category.id}>
+            <h2 className="text-xl font-bold mb-2">[{category.name}]</h2>
+
+            <ul className="space-y-1 mb-2">
+              {categoryTasks.map(task => (
+                <li key={task.id} className="flex justify-between">
+                  <span
+                    onClick={() => toggleTask(task.id)}
+                    className={`cursor-pointer ${
+                      task.completed ? 'line-through text-gray-400' : ''
+                    }`}
+                  >
+                    ・{task.text}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {getAssigneeLabel(task.assignee)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            {/* 追加ボタン */}
+            <button
+              onClick={() => setActiveCategory(category.id)}
+              className="text-sm text-blue-500"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+              +追加
+            </button>
+
+            {/* 入力欄（そのカテゴリだけ出る） */}
+            {activeCategory === category.id && (
+              <div className="mt-2 space-y-2">
+                <input
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  placeholder="タスク入力"
+                  className="border p-2 w-full rounded"
+                />
+
+                <select
+                  value={assignee}
+                  onChange={e => setAssignee(e.target.value as any)}
+                  className="border p-2 w-full rounded"
+                >
+                  <option value="both">どっちでも</option>
+                  <option value="me">自分</option>
+                  <option value="partner">相手</option>
+                </select>
+
+                <button
+                  onClick={addTask}
+                  className="bg-black text-white px-3 py-1 rounded"
+                >
+                  追加
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </main>
+  )
 }
