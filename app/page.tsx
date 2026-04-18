@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useEffect } from 'react'
 
 type Task = {
   id: string
@@ -14,52 +16,72 @@ type Category = {
   name: string
 }
 
-const initialCategories: Category[] = [
-  { id: 'shopping', name: '買い物' },
-  { id: 'payment', name: '支払い' },
-]
+const fetchCategories = async () => {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+
+  if (error) {
+    console.error(error)
+    return
+  }
+
+  return data
+}
+
+const fetchTasks = async () => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+
+  if (error) {
+    console.error(error)
+    return
+  }
+
+  return data
+}
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: crypto.randomUUID(),
-      text: '牛乳',
-      completed: false,
-      categoryId: 'shopping',
-      assignee: 'both',
-    },
-    {
-      id: crypto.randomUUID(),
-      text: '卵',
-      completed: false,
-      categoryId: 'shopping',
-      assignee: 'me',
-    },
-    {
-      id: crypto.randomUUID(),
-      text: '家賃',
-      completed: false,
-      categoryId: 'payment',
-      assignee: 'partner',
-    },
-  ])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
 
   const [input, setInput] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [assignee, setAssignee] = useState<'me' | 'partner' | 'both'>('both')
 
-  const addTask = () => {
-    if (!input || !activeCategory) return
+  useEffect(() => {
+    const load = async () => {
+      const categoriesData = await fetchCategories()
+      const tasksData = await fetchTasks()
 
-    const newTask: Task = {
-      id: crypto.randomUUID(),
-      text: input,
-      completed: false,
-      categoryId: activeCategory,
-      assignee,
+      if (categoriesData) setCategories(categoriesData)
+      if (tasksData) setTasks(tasksData)
     }
 
-    setTasks([...tasks, newTask])
+    load()
+  }, [])
+
+  const addTask = async () => {
+    if (!input || !activeCategory) return
+
+    const { error } = await supabase.from('tasks').insert([
+      {
+        text: input,
+        category_id: activeCategory,
+        assignee,
+      },
+    ])
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    // 再取得
+    const tasksData = await fetchTasks()
+    if (tasksData) setTasks(tasksData)
+
     setInput('')
     setActiveCategory(null)
   }
@@ -78,8 +100,8 @@ export default function Home() {
 
   return (
     <main className="p-6 max-w-xl mx-auto space-y-8">
-      {initialCategories.map(category => {
-        const categoryTasks = tasks.filter(t => t.categoryId === category.id)
+      {categories.map(category => {
+        const categoryTasks = tasks.filter(t => t.category_id === category.id)
 
         return (
           <div key={category.id}>
