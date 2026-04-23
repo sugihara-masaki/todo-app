@@ -33,6 +33,7 @@ const fetchTasks = async () => {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
+    .eq('completed', false)
 
   if (error) {
     console.error(error)
@@ -86,10 +87,22 @@ export default function Home() {
     setActiveCategory(null)
   }
 
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map(t =>
-      t.id === id ? { ...t, completed: !t.completed } : t
-    ))
+  const toggleTask = async (id: string, current: boolean) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ completed: !current })
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    setTasks(prev =>
+      prev.map(t =>
+        t.id === id ? { ...t, completed: !current } : t
+      )
+    )
   }
 
   const getAssigneeLabel = (a: Task['assignee']) => {
@@ -101,7 +114,8 @@ export default function Home() {
   return (
     <main className="p-6 max-w-xl mx-auto space-y-8">
       {categories.map(category => {
-        const categoryTasks = tasks.filter(t => t.category_id === category.id)
+        const categoryTasks = tasks
+          .filter(t => t.category_id === category.id)
 
         return (
           <div key={category.id}>
@@ -111,13 +125,14 @@ export default function Home() {
               {categoryTasks.map(task => (
                 <li key={task.id} className="flex justify-between">
                   <span
-                    onClick={() => toggleTask(task.id)}
+                    onClick={() => toggleTask(task.id, task.completed)}
                     className={`cursor-pointer ${
                       task.completed ? 'line-through text-gray-400' : ''
                     }`}
                   >
                     ・{task.text}
                   </span>
+
                   <span className="text-sm text-gray-500">
                     {getAssigneeLabel(task.assignee)}
                   </span>
