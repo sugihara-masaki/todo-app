@@ -7,8 +7,9 @@ type Task = {
   id: string
   text: string
   completed: boolean
-  categoryId: string
+  category_id: string
   assignee: 'me' | 'partner' | 'both'
+  created_at: string
 }
 
 type Category = {
@@ -111,6 +112,13 @@ export default function Home() {
     return '⚪️ どっちでも'
   }
 
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.completed !== b.completed) {
+      return Number(a.completed) - Number(b.completed)
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
   return (
     <main className="p-6 max-w-xl mx-auto space-y-8">
       {categories.map(category => {
@@ -122,7 +130,7 @@ export default function Home() {
             <h2 className="text-xl font-bold mb-2">[{category.name}]</h2>
 
             <ul className="space-y-1 mb-2">
-              {categoryTasks.map(task => (
+              {sortedTasks.map(task => (
                 <li key={task.id} className="flex justify-between">
                   <span
                     onClick={() => toggleTask(task.id, task.completed)}
