@@ -112,18 +112,18 @@ export default function Home() {
     return '⚪️ どっちでも'
   }
 
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (a.completed !== b.completed) {
-      return Number(a.completed) - Number(b.completed)
-    }
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  })
-
   return (
     <main className="p-6 max-w-xl mx-auto space-y-8">
       {categories.map(category => {
         const categoryTasks = tasks
           .filter(t => t.category_id === category.id)
+
+        const sortedTasks = [...categoryTasks].sort((a, b) => {
+          if (a.completed !== b.completed) {
+            return Number(a.completed) - Number(b.completed)
+          }
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
 
         return (
           <div key={category.id}>
